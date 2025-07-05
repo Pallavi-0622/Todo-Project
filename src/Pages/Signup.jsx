@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const SignupPage = () => {
   const [form, setForm] = useState({
@@ -8,6 +9,7 @@ const SignupPage = () => {
     confirmPassword: "",
   });
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -31,7 +33,6 @@ const SignupPage = () => {
       return;
     }
 
-    // Store user data in localStorage
     const existingUsers = JSON.parse(localStorage.getItem("users")) || [];
     const isEmailTaken = existingUsers.find((u) => u.email === form.email);
 
@@ -48,6 +49,7 @@ const SignupPage = () => {
 
     existingUsers.push(newUser);
     localStorage.setItem("users", JSON.stringify(existingUsers));
+    navigate("/login");
 
     setMessage("Signup successful!");
     setForm({ name: "", email: "", password: "", confirmPassword: "" });

@@ -16,32 +16,32 @@ const App = () => {
   const todos = useSelector((state) => state.todos);
   const taskText = useSelector((state) => state.taskText);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [filter, setFilter] = useState("All");
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editedText, setEditedText] = useState("");
   const [editedStatus, setEditedStatus] = useState("open");
-
-  const navigate = useNavigate();
-
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
-  const userName = user?.name || "User";
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("todos");
-    if (saved) {
-      dispatch(setTodos(JSON.parse(saved)));
+    const storedUser = localStorage.getItem("loggedInUser");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+
+    const savedTodos = localStorage.getItem("todos");
+    if (savedTodos) {
+      dispatch(setTodos(JSON.parse(savedTodos)));
     }
   }, [dispatch]);
 
-  useEffect(() => {
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos]);
+  const userName = user?.name || "User";
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/login");
+    localStorage.removeItem("loggedInUser");
+    navigate("/login", { replace: true }); 
   };
 
   const addTodo = () => {
@@ -68,24 +68,8 @@ const App = () => {
     return true;
   });
 
-  //const getDay = (timestamp) =>
-    //new Date(timestamp).toLocaleString("en-US", { weekday: "short" });
-
-  // const weeklyStats = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-  //   (day) => {
-  //     const dayTodos = todos.filter((t) => getDay(t.timestamp) === day);
-  //     return {
-  //       day,
-  //       completed: dayTodos.filter((t) => t.status === "completed").length,
-  //       incomplete: dayTodos.filter((t) => t.status === "in_progress").length,
-  //     };
-  //   }
-  // );
-
   const completedCount = todos.filter((t) => t.status === "completed").length;
-  const inprogressCount = todos.filter(
-    (t) => t.status === "in_progress"
-  ).length;
+  const inprogressCount = todos.filter((t) => t.status === "in_progress").length;
   const cancelledCount = todos.filter((t) => t.status === "cancelled").length;
   const openCount = todos.filter((t) => t.status === "open").length;
 
@@ -293,7 +277,6 @@ const App = () => {
         </table>
       </div>
 
-      {/* Pie Chart Instead of Bar Chart */}
       <div className="bg-white rounded-lg shadow-md p-6 mt-2 mb-2">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">
           Task Status Distribution
