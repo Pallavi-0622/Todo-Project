@@ -6,7 +6,7 @@ const TodoList = ({ todos, toggleComplete, deleteTodo, updateTodo }) => {
     <div className="flex flex-col gap-3 w-full">
       {todos.length === 0 ? (
         <div className="text-center py-10 text-gray-400 text-sm italic border border-dashed border-gray-200 rounded-lg">
-          💤 No tasks yet. Add your first one to get started!
+           No tasks yet. Add your first one to get started!
         </div>
       ) : (
         todos.map((todo) => (

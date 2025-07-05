@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BarChart from "./components/BarChart";
+import PieChartComponent from "./components/PieChartComponent";
 import { LogOut } from "lucide-react";
+import {
+  deleteTodo as deleteTodoAction,
+  setTaskText,
+  setTodos,
+} from "./redux/actions";
+import { useDispatch, useSelector } from "react-redux";
+import { ADD_TODO } from "./redux/actions";
 
 const FILTERS = ["All", "Open", "In Progress", "Completed", "Cancelled"];
 
 const App = () => {
-  const [todos, setTodos] = useState(() => {
-    const saved = localStorage.getItem("todos");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const todos = useSelector((state) => state.todos);
+  const taskText = useSelector((state) => state.taskText);
+  const dispatch = useDispatch();
 
   const [filter, setFilter] = useState("All");
-  const [taskText, setTaskText] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editedText, setEditedText] = useState("");
@@ -20,12 +25,15 @@ const App = () => {
 
   const navigate = useNavigate();
 
+  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+  const userName = user?.name || "User";
+
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("loggedInUser");
-    if (!isLoggedIn) {
-      navigate("/login");
+    const saved = localStorage.getItem("todos");
+    if (saved) {
+      dispatch(setTodos(JSON.parse(saved)));
     }
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
@@ -37,20 +45,19 @@ const App = () => {
   };
 
   const addTodo = () => {
-    if (taskText.trim()) {
+    if (taskText?.trim()) {
       const newTodo = {
         id: Date.now(),
         text: taskText,
         status: "open",
         timestamp: Date.now(),
       };
-      setTodos([newTodo, ...todos]);
-      setTaskText("");
+      dispatch({ type: ADD_TODO, payload: newTodo });
     }
   };
 
   const deleteTodo = (id) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    dispatch(deleteTodoAction(id));
   };
 
   const filteredTodos = todos.filter((todo) => {
@@ -61,19 +68,19 @@ const App = () => {
     return true;
   });
 
-  const getDay = (timestamp) =>
-    new Date(timestamp).toLocaleString("en-US", { weekday: "short" });
+  //const getDay = (timestamp) =>
+    //new Date(timestamp).toLocaleString("en-US", { weekday: "short" });
 
-  const weeklyStats = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-    (day) => {
-      const dayTodos = todos.filter((t) => getDay(t.timestamp) === day);
-      return {
-        day,
-        completed: dayTodos.filter((t) => t.status === "completed").length,
-        incomplete: dayTodos.filter((t) => t.status === "in_progress").length,
-      };
-    }
-  );
+  // const weeklyStats = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+  //   (day) => {
+  //     const dayTodos = todos.filter((t) => getDay(t.timestamp) === day);
+  //     return {
+  //       day,
+  //       completed: dayTodos.filter((t) => t.status === "completed").length,
+  //       incomplete: dayTodos.filter((t) => t.status === "in_progress").length,
+  //     };
+  //   }
+  // );
 
   const completedCount = todos.filter((t) => t.status === "completed").length;
   const inprogressCount = todos.filter(
@@ -94,12 +101,18 @@ const App = () => {
     <div className="min-h-screen bg-gray-50 px-6 py-8 w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">To-Do Dashboard</h1>
-        <div
-          onClick={handleLogout}
-          className="cursor-pointer text-red-600 hover:text-red-800 transition"
-          title="Logout"
-        >
-          <LogOut size={28} />
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-700 font-medium">
+            Welcome,{" "}
+            <span className="font-semibold text-indigo-600">{userName}</span>
+          </span>
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="text-red-600 hover:text-red-800 transition"
+          >
+            <LogOut size={24} />
+          </button>
         </div>
       </div>
 
@@ -130,7 +143,7 @@ const App = () => {
           <input
             type="text"
             value={taskText}
-            onChange={(e) => setTaskText(e.target.value)}
+            onChange={(e) => dispatch(setTaskText(e.target.value))}
             placeholder="Enter new task"
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm placeholder-gray-400"
           />
@@ -206,15 +219,17 @@ const App = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setTodos((prev) =>
-                            prev.map((t) =>
-                              t.id === todo.id
-                                ? {
-                                    ...t,
-                                    text: editedText,
-                                    status: editedStatus,
-                                  }
-                                : t
+                          dispatch(
+                            setTodos(
+                              todos.map((t) =>
+                                t.id === todo.id
+                                  ? {
+                                      ...t,
+                                      text: editedText,
+                                      status: editedStatus,
+                                    }
+                                  : t
+                              )
                             )
                           );
                           setEditingId(null);
@@ -278,13 +293,19 @@ const App = () => {
         </table>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
-            Weekly Task Activity
-          </h2>
-          <BarChart weeklyStats={weeklyStats} />
-        </div>
+      {/* Pie Chart Instead of Bar Chart */}
+      <div className="bg-white rounded-lg shadow-md p-6 mt-2 mb-2">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+          Task Status Distribution
+        </h2>
+        <PieChartComponent
+          data={{
+            open: openCount,
+            in_progress: inprogressCount,
+            completed: completedCount,
+            cancelled: cancelledCount,
+          }}
+        />
       </div>
     </div>
   );
